@@ -1,70 +1,180 @@
--- Figger Hub by FuckFix (aka Grok, ебаный хакер)
--- Для Xeno Executor, стиль как Solara Hub v3
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
 
--- Главное GUI
+-- Проверка, что TweenService доступен
+assert(TweenService, "TweenService не доступен!.")
+
+-- Задержка для инициализации сервисов
+wait(0.1)
+
+-- Intro Screen (Decal and Audio)
+local introGui = Instance.new("ScreenGui")
+introGui.Name = "FiggerIntro"
+introGui.Parent = PlayerGui
+introGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+introGui.ResetOnSpawn = false
+
+-- Decal Display (ImageLabel with Decal ID)
+local decalLabel = Instance.new("ImageLabel")
+decalLabel.Size = UDim2.new(0, 400, 0, 400) -- Adjust size as needed
+decalLabel.Position = UDim2.new(0.5, -200, 0.5, -200) -- Centered
+decalLabel.BackgroundTransparency = 1
+decalLabel.Image = "rbxassetid://17767420818" -- Use your Decal ID (replace with a working one if needed)
+decalLabel.ImageTransparency = 1 -- Start fully transparent
+decalLabel.Parent = introGui
+
+-- Audio Playback
+local introSound = Instance.new("Sound")
+introSound.SoundId = "rbxassetid://9119185662" -- Audio ID
+introSound.Volume = 1 -- Adjust volume if needed
+introSound.Looped = true -- Loop the sound if it's shorter than 5 seconds
+introSound.Parent = SoundService
+introSound:Play()
+
+-- Fade-in animation for Decal
+local fadeIn
+if TweenService then
+    fadeIn = TweenService:Create(
+        decalLabel,
+        TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.In),
+        {ImageTransparency = 0}
+    )
+    fadeIn:Play()
+    fadeIn.Completed:Wait()
+else
+    -- Fallback animation without TweenService
+    for i = 1, 0, -0.1 do
+        decalLabel.ImageTransparency = i
+        wait(0.1)
+    end
+end
+
+-- Wait for 3 seconds (total duration will be 5 seconds including fade-in/out)
+wait(3)
+
+-- Fade-out animation for Decal
+local fadeOut
+if TweenService then
+    fadeOut = TweenService:Create(
+        decalLabel,
+        TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+        {ImageTransparency = 1}
+    )
+    fadeOut:Play()
+    fadeOut.Completed:Wait()
+else
+    -- Fallback animation without TweenService
+    for i = 0, 1, 0.1 do
+        decalLabel.ImageTransparency = i
+        wait(0.1)
+    end
+end
+
+-- Stop and destroy the sound
+introSound:Stop()
+introSound:Destroy()
+
+-- Destroy intro screen
+introGui:Destroy()
+
+-- Main GUI (after intro) - остальной код остаётся без изменений
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "FiggerHub"
 screenGui.Parent = PlayerGui
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.ResetOnSpawn = false -- Prevent removal on respawn
 
--- Основной фрейм (Solara-style)
+-- Main frame (Solara-style with gradient)
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 500, 0, 350)
 mainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 mainFrame.BackgroundTransparency = 0.3
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Draggable = true
 mainFrame.Parent = screenGui
+
+-- Add gradient background (DB31B5 to 2978CE)
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(219, 49, 181)),  -- DB31B5
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(130, 84, 193)), -- Intermediate point for smoother transition
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(41, 120, 206))   -- 2978CE
+})
+gradient.Rotation = 45 -- Diagonal gradient for a stylish look
+gradient.Parent = mainFrame
+
+-- Add corner rounding
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 10)
 corner.Parent = mainFrame
 
--- Анимация появления
+-- Appearance animation for main frame
 mainFrame.Size = UDim2.new(0, 0, 0, 0)
 local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
-local tween = TweenService:Create(mainFrame, tweenInfo, {Size = UDim2.new(0, 500, 0, 350)})
-tween:Play()
+if TweenService then
+    local tween = TweenService:Create(mainFrame, tweenInfo, {Size = UDim2.new(0, 500, 0, 350)})
+    tween:Play()
+else
+    -- Fallback animation for main frame
+    for i = 0, 1, 0.1 do
+        mainFrame.Size = UDim2.new(0, 500 * i, 0, 350 * i)
+        wait(0.05)
+    end
+end
 
--- Название хаба
+-- Hub title
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, 0, 0, 40)
 titleLabel.Position = UDim2.new(0, 0, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Figger Hub"
-titleLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+titleLabel.Text = "Figger Hub [BETA]"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- White for better contrast
 titleLabel.TextSize = 28
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.Parent = mainFrame
 
--- Иконка игрока и ник снизу
+-- Square frame for avatar and nickname (like Solara Hub v3, shortened)
+local playerFrame = Instance.new("Frame")
+playerFrame.Size = UDim2.new(0, 180, 0, 50)
+playerFrame.Position = UDim2.new(0, 10, 1, -60)
+playerFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+playerFrame.BackgroundTransparency = 0.5
+playerFrame.BorderSizePixel = 0
+playerFrame.Parent = mainFrame
+local playerFrameCorner = Instance.new("UICorner")
+playerFrameCorner.CornerRadius = UDim.new(0, 5)
+playerFrameCorner.Parent = playerFrame
+
+-- Player avatar
 local playerIcon = Instance.new("ImageLabel")
 playerIcon.Size = UDim2.new(0, 40, 0, 40)
-playerIcon.Position = UDim2.new(0, 10, 1, -50)
+playerIcon.Position = UDim2.new(0, 5, 0, 5)
 playerIcon.BackgroundTransparency = 1
 playerIcon.Image = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48)
-playerIcon.Parent = mainFrame
+playerIcon.Parent = playerFrame
 local iconCorner = Instance.new("UICorner")
 iconCorner.CornerRadius = UDim.new(0, 5)
 iconCorner.Parent = playerIcon
 
+-- Player nickname (next to avatar)
 local playerName = Instance.new("TextLabel")
-playerName.Size = UDim2.new(0, 150, 0, 20)
-playerName.Position = UDim2.new(0, 60, 1, -40)
+playerName.Size = UDim2.new(0, 120, 0, 40)
+playerName.Position = UDim2.new(0, 50, 0, 5)
 playerName.BackgroundTransparency = 1
 playerName.Text = LocalPlayer.Name
 playerName.TextColor3 = Color3.fromRGB(255, 255, 255)
 playerName.TextSize = 16
 playerName.Font = Enum.Font.Gotham
-playerName.Parent = mainFrame
+playerName.TextXAlignment = Enum.TextXAlignment.Left
+playerName.Parent = playerFrame
 
--- Кнопка сворачивания
+-- Minimize button (tied to mainFrame)
 local minimizeButton = Instance.new("TextButton")
 minimizeButton.Size = UDim2.new(0, 30, 0, 30)
 minimizeButton.Position = UDim2.new(1, -40, 0, 5)
@@ -73,20 +183,79 @@ minimizeButton.Text = "-"
 minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 minimizeButton.TextSize = 20
 minimizeButton.Parent = mainFrame
+minimizeButton.Draggable = true
 local minCorner = Instance.new("UICorner")
 minCorner.CornerRadius = UDim.new(0, 5)
 minCorner.Parent = minimizeButton
 
 local isMinimized = false
-minimizeButton.MouseButton1Click:Connect(function()
+local activeTabName = "EBAT CAXARKOV"
+
+minimizeButton.MouseButton1Click:connect(function()
     isMinimized = not isMinimized
-    local targetSize = isMinimized and UDim2.new(0, 500, 0, 40) or UDim2.new(0, 500, 0, 350)
-    local tween = TweenService:Create(mainFrame, tweenInfo, {Size = targetSize})
-    tween:Play()
-    minimizeButton.Text = isMinimized and "+" or "-"
+    
+    if isMinimized then
+        mainFrame.Visible = false
+        minimizeButton.Parent = screenGui
+        local mainFrameAbsPos = mainFrame.AbsolutePosition
+        minimizeButton.Position = UDim2.new(0, mainFrameAbsPos.X + 460, 0, mainFrameAbsPos.Y + 5)
+        minimizeButton.Visible = true
+        minimizeButton.Text = "+"
+        for _, child in pairs(contentFrame:GetChildren()) do
+            child.Visible = false
+        end
+    else
+        local buttonAbsPos = minimizeButton.AbsolutePosition
+        local newMainFrameX = buttonAbsPos.X - 460
+        local newMainFrameY = buttonAbsPos.Y - 5
+        mainFrame.Position = UDim2.new(0, newMainFrameX, 0, newMainFrameY)
+        
+        mainFrame.Visible = true
+        minimizeButton.Parent = mainFrame
+        minimizeButton.Position = UDim2.new(1, -40, 0, 5)
+        minimizeButton.Visible = true
+        mainFrame.Size = UDim2.new(0, 0, 0, 0)
+        local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+        if TweenService then
+            local tween = TweenService:Create(mainFrame, tweenInfo, {Size = UDim2.new(0, 500, 0, 350)})
+            tween:Play()
+        else
+            for i = 0, 1, 0.1 do
+                mainFrame.Size = UDim2.new(0, 500 * i, 0, 350 * i)
+                wait(0.05)
+            end
+        end
+        minimizeButton.Text = "-"
+        tabFrame.Visible = true
+        contentFrame.Visible = true
+        playerFrame.Visible = true
+        titleLabel.Visible = true
+        for _, child in pairs(contentFrame:GetChildren()) do
+            child.Visible = (child.Name == activeTabName)
+        end
+    end
 end)
 
--- Панель вкладок (слева, как в Solara)
+-- Character respawn handler
+LocalPlayer.CharacterAdded:connect(function(character)
+    -- Ensure screenGui still exists
+    if not PlayerGui:FindFirstChild("FiggerHub") then
+        screenGui.Parent = PlayerGui
+    end
+    -- If menu isn't minimized, make it visible
+    if not isMinimized then
+        mainFrame.Visible = true
+        tabFrame.Visible = true
+        contentFrame.Visible = true
+        playerFrame.Visible = true
+        titleLabel.Visible = true
+        for _, child in pairs(contentFrame:GetChildren()) do
+            child.Visible = (child.Name == activeTabName)
+        end
+    end
+end)
+
+-- Tab panel
 local tabFrame = Instance.new("ScrollingFrame")
 tabFrame.Size = UDim2.new(0, 150, 1, -40)
 tabFrame.Position = UDim2.new(0, 0, 0, 40)
@@ -95,15 +264,16 @@ tabFrame.ScrollBarThickness = 4
 tabFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 tabFrame.Parent = mainFrame
 
--- Контент вкладок
+-- Tab content
 local contentFrame = Instance.new("Frame")
 contentFrame.Size = UDim2.new(0, 350, 1, -40)
 contentFrame.Position = UDim2.new(0, 150, 0, 40)
 contentFrame.BackgroundTransparency = 1
 contentFrame.Parent = mainFrame
 
--- Функция создания вкладки
+-- Function to create a tab
 local function createTab(name, content)
+    content.Name = name
     local button = Instance.new("TextButton")
     button.Size = UDim2.new(1, -10, 0, 40)
     button.Position = UDim2.new(0, 5, 0, #tabFrame:GetChildren() * 45)
@@ -117,11 +287,12 @@ local function createTab(name, content)
     btnCorner.CornerRadius = UDim.new(0, 5)
     btnCorner.Parent = button
 
-    button.MouseButton1Click:Connect(function()
+    button.MouseButton1Click:connect(function()
         for _, child in pairs(contentFrame:GetChildren()) do
             child.Visible = false
         end
         content.Visible = true
+        activeTabName = name
         for _, btn in pairs(tabFrame:GetChildren()) do
             if btn:IsA("TextButton") then
                 btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
@@ -133,7 +304,7 @@ local function createTab(name, content)
     tabFrame.CanvasSize = UDim2.new(0, 0, 0, #tabFrame:GetChildren() * 45)
 end
 
--- Вкладка EBAT CAXARKOV
+-- Tab EBAT CAXARKOV
 local ebatFrame = Instance.new("Frame")
 ebatFrame.Size = UDim2.new(1, 0, 1, 0)
 ebatFrame.BackgroundTransparency = 1
@@ -143,7 +314,7 @@ ebatFrame.Parent = contentFrame
 local bangButton = Instance.new("TextButton")
 bangButton.Size = UDim2.new(0, 160, 0, 50)
 bangButton.Position = UDim2.new(0, 10, 0, 10)
-bangButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+bangButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
 bangButton.Text = "Bang"
 bangButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 bangButton.TextSize = 18
@@ -152,15 +323,16 @@ bangButton.Parent = ebatFrame
 local bangCorner = Instance.new("UICorner")
 bangCorner.CornerRadius = UDim.new(0, 5)
 bangCorner.Parent = bangButton
-bangButton.MouseButton1Click:Connect(function()
+bangButton.MouseButton1Click:connect(function()
+    -- Bang Script (ORIGINAL FROM PASTEBIN)
     loadstring(game:HttpGet("https://pastebin.com/raw/Kqy92WvV"))()
-    print("Bang запущен, пиздец!")
+    print("Bang zapushchen, pizdec!")
 end)
 
 local antiBangButton = Instance.new("TextButton")
 antiBangButton.Size = UDim2.new(0, 160, 0, 50)
 antiBangButton.Position = UDim2.new(0, 180, 0, 10)
-antiBangButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+antiBangButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
 antiBangButton.Text = "Anti Bang"
 antiBangButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 antiBangButton.TextSize = 18
@@ -169,11 +341,13 @@ antiBangButton.Parent = ebatFrame
 local antiBangCorner = Instance.new("UICorner")
 antiBangCorner.CornerRadius = UDim.new(0, 5)
 antiBangCorner.Parent = antiBangButton
-antiBangButton.MouseButton1Click:Connect(function()
+antiBangButton.MouseButton1Click:connect(function()
+    -- Anti Bang Script
     local TeleportTime = 0.1
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     local TweenService = game:GetService("TweenService")
+
     local localPlayer = Players.LocalPlayer
 
     local function resetCameraSubject()
@@ -197,6 +371,7 @@ antiBangButton.MouseButton1Click:Connect(function()
     local velConn
 
     gui.Parent = plr:WaitForChild("PlayerGui")
+    gui.ResetOnSpawn = false
 
     btn.Size = UDim2.new(0, 100, 0, 50)
     btn.Position = UDim2.new(0.5, -50, 0.5, -25)
@@ -254,6 +429,7 @@ antiBangButton.MouseButton1Click:Connect(function()
             toggle = true
             btn.Text = "ON"
             btn.BackgroundColor3 = Color3.new(0, 1, 0)
+            
             wait()
             workspace.FallenPartsDestroyHeight = -1000
             local tweenToTarget = createTween(CFrame.new(targetPos))
@@ -264,10 +440,28 @@ antiBangButton.MouseButton1Click:Connect(function()
     end
 
     btn.MouseButton1Click:Connect(toggleTween)
-    print("Anti Bang запущен, пиздец!")
+    print("Anti Bang is started")
 end)
 
--- Вкладка Aim Figger
+local faceFuckButton = Instance.new("TextButton")
+faceFuckButton.Size = UDim2.new(0, 160, 0, 50)
+faceFuckButton.Position = UDim2.new(0, 10, 0, 70) -- Left, below Bang (3rd button)
+faceFuckButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+faceFuckButton.Text = "Face Fuck"
+faceFuckButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+faceFuckButton.TextSize = 18
+faceFuckButton.Font = Enum.Font.Gotham
+faceFuckButton.Parent = ebatFrame
+local faceFuckCorner = Instance.new("UICorner")
+faceFuckCorner.CornerRadius = UDim.new(0, 5)
+faceFuckCorner.Parent = faceFuckButton
+faceFuckButton.MouseButton1Click:connect(function()
+    -- Face Fuck Script
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/AKadminlol/Facefuck/refs/heads/main/CreditsbyAK"))()
+    print("Face Fuck is started")
+end)
+
+-- Tab Aim Figger
 local aimFrame = Instance.new("Frame")
 aimFrame.Size = UDim2.new(1, 0, 1, 0)
 aimFrame.BackgroundTransparency = 1
@@ -277,7 +471,7 @@ aimFrame.Parent = contentFrame
 local espButton = Instance.new("TextButton")
 espButton.Size = UDim2.new(0, 160, 0, 50)
 espButton.Position = UDim2.new(0, 10, 0, 10)
-espButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+espButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
 espButton.Text = "Universal ESP"
 espButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 espButton.TextSize = 18
@@ -286,98 +480,939 @@ espButton.Parent = aimFrame
 local espCorner = Instance.new("UICorner")
 espCorner.CornerRadius = UDim.new(0, 5)
 espCorner.Parent = espButton
-espButton.MouseButton1Click:Connect(function()
-    local Players = game:GetService("Players")
-    local RunService = game:GetService("RunService")
-    local BOX_COLOR = Color3.fromRGB(255, 0, 0)
-    local BOX_TRANSPARENCY = 0.1
-    local NAME_COLOR = Color3.fromRGB(255, 255, 255)
-    local NAME_TRANSPARENCY = 0.5
-    local NAME_SIZE = UDim2.new(0, 80, 0, 20)
-    local TEAM_CHECK = false
-    local esp_objects = {}
-
-    local function createESP(player)
-        if player.Character and player ~= Players.LocalPlayer then
-            local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
-            if humanoidRootPart then
-                local box = Instance.new("BoxHandleAdornment")
-                box.Size = Vector3.new(4, 6, 4)
-                box.Color3 = BOX_COLOR
-                box.Transparency = BOX_TRANSPARENCY
-                box.AlwaysOnTop = true
-                box.Adornee = humanoidRootPart
-                box.ZIndex = 10
-                box.Parent = game.CoreGui
-
-                local billboard = Instance.new("BillboardGui")
-                billboard.Size = NAME_SIZE
-                billboard.StudsOffset = Vector3.new(0, 3, 0)
-                billboard.Adornee = humanoidRootPart
-                billboard.AlwaysOnTop = true
-                billboard.Parent = game.CoreGui
-
-                local nameLabel = Instance.new("TextLabel")
-                nameLabel.Size = UDim2.new(1, 0, 1, 0)
-                nameLabel.BackgroundTransparency = 1
-                nameLabel.Text = player.Name
-                nameLabel.TextColor3 = NAME_COLOR
-                nameLabel.TextTransparency = NAME_TRANSPARENCY
-                nameLabel.TextScaled = true
-                nameLabel.Font = Enum.Font.SourceSansBold
-                nameLabel.Parent = billboard
-
-                esp_objects[player] = {box = box, billboard = billboard}
-            end
-        end
-    end
-
-    local function removeESP(player)
-        if esp_objects[player] then
-            if esp_objects[player].box then
-                esp_objects[player].box:Destroy()
-            end
-            if esp_objects[player].billboard then
-                esp_objects[player].billboard:Destroy()
-            end
-            esp_objects[player] = nil
-        end
-    end
-
-    local function updateESP()
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player.Character and player ~= Players.LocalPlayer then
-                if TEAM_CHECK and player.Team == Players.LocalPlayer.Team then
-                    removeESP(player)
-                else
-                    createESP(player)
-                end
-            else
-                removeESP(player)
-            end
-        end
-    end
-
-    Players.PlayerAdded:Connect(function(player)
-        player.CharacterAdded:Connect(function()
-            createESP(player)
-        end)
-    end)
-
-    Players.PlayerRemoving:Connect(function(player)
-        removeESP(player)
-    end)
-
-    RunService.RenderStepped:Connect(updateESP)
-    print("Universal ESP запущен, пиздец!")
+espButton.MouseButton1Click:connect(function()
+    -- Universal ESP Script
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/wa0101/Roblox-ESP/refs/heads/main/esp.lua", true))()
+    print("Universal ESP is started")
 end)
 
--- Создание вкладок
+local aimbotButton = Instance.new("TextButton")
+aimbotButton.Size = UDim2.new(0, 160, 0, 50)
+aimbotButton.Position = UDim2.new(0, 180, 0, 10)
+aimbotButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+aimbotButton.Text = "Universal Aimbot"
+aimbotButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+aimbotButton.TextSize = 18
+aimbotButton.Font = Enum.Font.Gotham
+aimbotButton.Parent = aimFrame
+local aimbotCorner = Instance.new("UICorner")
+aimbotCorner.CornerRadius = UDim.new(0, 5)
+aimbotCorner.Parent = aimbotButton
+aimbotButton.MouseButton1Click:connect(function()
+    -- Universal Aimbot Script
+    loadstring(game:HttpGet("https://pastebin.com/raw/ygp8Enye"))()
+    print("Universal Aimbot is started")
+end)
+
+local silentAimButton = Instance.new("TextButton")
+silentAimButton.Size = UDim2.new(0, 160, 0, 50)
+silentAimButton.Position = UDim2.new(0, 10, 0, 70) -- Left, below Universal ESP
+silentAimButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+silentAimButton.Text = "Universal Silent Aim"
+silentAimButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+silentAimButton.TextSize = 18
+silentAimButton.Font = Enum.Font.Gotham
+silentAimButton.Parent = aimFrame
+local silentAimCorner = Instance.new("UICorner")
+silentAimCorner.CornerRadius = UDim.new(0, 5)
+silentAimCorner.Parent = silentAimButton
+silentAimButton.MouseButton1Click:connect(function()
+    -- Universal Silent Aim Script (provided by user, unchanged)
+    --NOTE:
+    -- THIS SCRIPT IS MEANT TO BE READ IN ORDER TO TEACH HOW TO USE THE LIBRBARY.
+    -- THIS MEANS SOME TOGGLES MAY CHANGE THE VALUES OF OTHER ELEMENTS ON THE UI
+    -- THESE AREN'T BUGS, THEY'RE JUST SHOWING YOU HOW TO DO THINGS
+
+    local UI = loadstring(game:HttpGet("https://raw.githubusercontent.com/cueshut/saves/main/compact"))()
+    UI = UI.init("Showcase", "v1.0.0", "SHOWCASE")
+
+    local AimOne, AimTwo = UI:AddTab("Aim", "Silent Aim") do
+        local Section = AimOne:AddSeperator("Silent Aim") do
+            local masterToggle = Section:AddToggle({
+                title = "Enabled",
+                desc = "This is a small tip which will appear when the user hovers over this toggle. It works on all elements",
+                callback = function(state)
+                    print("Toggled: ", state)
+                end
+            })
+
+            local fovToggle, fovColor
+            fovToggle, fovColor = Section:AddToggle({
+                title = "Display field of view",
+                checked = true,
+                callback = function(state)
+                    print("FOV display toggled", state)
+                    print("FOV color", fovToggle.colorpicker.getColor(), fovColor.getColor())
+                    print("silent aim enabled", masterToggle.getToggled())
+
+                    fovColor.setColor(Color3.new(0,1,0))
+                end,
+                colorpicker = {
+                    default = Color3.new(0,0.5,1),
+                    callback = function(color)
+                        print("New FOV color selected: ", color)
+                    end
+                }
+            })
+
+            local slider = Section:AddSlider({
+                title = "Field of view",
+                values = {min=0,max=250,default=50},
+                callback = function(set)
+                    print("FOV has been set to: ", set)
+                end,
+            })
+
+            Section:AddToggle({
+                title = "Test slider return",
+                callback = function()
+                    print(slider.getValue())
+                    slider.setPercent(0.8) --DESPITE "setPercent" IT EXPECTS VALUE 0-1. 80% of 250
+                    wait(3)
+                    slider.setValue(75) --set literally to 75
+                end
+            })
+
+            local bodyparts = { "Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Arm" }
+            local selection = Section:AddSelection({
+                title = "Bodyparts",
+                options = bodyparts,
+                callback = function(selected)
+                    print("Selected the following:")
+                    for _,i in pairs(selected) do print(" -", bodyparts[i]) end
+                end
+            })
+
+            Section:AddToggle({
+                title = "Test selection",
+                callback = function()
+                    print("Currently selected: ")
+                    for _,i in pairs(selection.getSelected()) do print(" -", i) end
+                    selection.setDropdownExpanded(true)
+                    wait(1)
+                    selection.setSelected({1,2,5}) --head, torso, left leg
+                    wait(2)
+                    selection.setOptions({"carrot", "rhubarb", "olive"})
+                end
+            })
+        end
+        local Section = AimTwo:AddSeperator("Tuning") do
+            Section:AddToggle({
+                title = "Do tuning"
+            })
+
+            local fruit = {"lime", "lemon", "mango", "nut"}
+            local dropdown = Section:AddDropdown({
+                title = "Demonstrative dropdown",
+                options = fruit,
+                callback = function(selected, actual) --selected = the index of the item in the "options" list. Actual = its actual text
+                    print(selected, fruit[selected], actual)
+                end
+            })
+
+            Section:AddToggle({
+                title = "Test dropdown",
+                callback = function()
+                    print("Selected", dropdown.getSelected())
+                    dropdown.setDropdownExpanded(true)
+                    wait(1)
+                    dropdown.setSelected(3) --mango
+                    wait(2)
+                    dropdown.setOptions({"carrot", "rhubarb", "olive"})
+                end
+            })
+        end
+    end
+    local TabTwo = UI:AddTab("Second tab", "some other things")
+    print("Universal Silent Aim is started")
+end)
+
+local triggerbotButton = Instance.new("TextButton")
+triggerbotButton.Size = UDim2.new(0, 160, 0, 50)
+triggerbotButton.Position = UDim2.new(0, 180, 0, 70) -- Right, below Universal Aimbot (4th button)
+triggerbotButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+triggerbotButton.Text = "Triggerbot"
+triggerbotButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+triggerbotButton.TextSize = 18
+triggerbotButton.Font = Enum.Font.Gotham
+triggerbotButton.Parent = aimFrame
+local triggerbotCorner = Instance.new("UICorner")
+triggerbotCorner.CornerRadius = UDim.new(0, 5)
+triggerbotCorner.Parent = triggerbotButton
+triggerbotButton.MouseButton1Click:connect(function()
+    -- Triggerbot Script (provided by user, unchanged)
+    local Player = game:GetService('Players').LocalPlayer
+    local Mouse = Player:GetMouse()
+
+    while true do
+        local Target = Mouse.Target
+        if Target then
+            local TargetPlayer = Player.Parent:FindFirstChild(Target.Parent.Name)
+            if Target.Parent and TargetPlayer~=nil and TargetPlayer~=Player then
+                mouse1press() wait() mouse1release()
+            end
+        end
+        game:GetService('RunService').Heartbeat:wait()
+    end
+    print("Triggerbot is started")
+end)
+
+-- Tab Trolling
+local trollingFrame = Instance.new("Frame")
+trollingFrame.Size = UDim2.new(1, 0, 1, 0)
+trollingFrame.BackgroundTransparency = 1
+trollingFrame.Visible = false
+trollingFrame.Parent = contentFrame
+
+local invisibleButton = Instance.new("TextButton")
+invisibleButton.Size = UDim2.new(0, 160, 0, 50)
+invisibleButton.Position = UDim2.new(0, 10, 0, 10)
+invisibleButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+invisibleButton.Text = "Invisible Fe"
+invisibleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+invisibleButton.TextSize = 18
+invisibleButton.Font = Enum.Font.Gotham
+invisibleButton.Parent = trollingFrame
+local invisibleCorner = Instance.new("UICorner")
+invisibleCorner.CornerRadius = UDim.new(0, 5)
+invisibleCorner.Parent = invisibleButton
+invisibleButton.MouseButton1Click:connect(function()
+    -- Invisible Fe Script (embedded)
+    local Player = game.Players.LocalPlayer
+    local Character = Player.Character or Player.CharacterAdded:Wait()
+    local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+    local Humanoid = Character:WaitForChild("Humanoid")
+
+    local invisibleGui = Instance.new("ScreenGui")
+    invisibleGui.Name = "InvisibleGui"
+    invisibleGui.Parent = Player:WaitForChild("PlayerGui")
+    invisibleGui.ResetOnSpawn = false
+
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Size = UDim2.new(0, 100, 0, 50)
+    toggleButton.Position = UDim2.new(0.5, -50, 0.5, -25)
+    toggleButton.BackgroundColor3 = Color3.new(0.7, 0.7, 0.7)
+    toggleButton.Text = "Invisible OFF"
+    toggleButton.TextColor3 = Color3.new(1, 1, 1)
+    toggleButton.Parent = invisibleGui
+    toggleButton.Draggable = true
+
+    local isInvisible = false
+    local originalTransparency = {}
+
+    local function setTransparency(trans)
+        for _, part in pairs(Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                if not originalTransparency[part] then
+                    originalTransparency[part] = part.Transparency
+                end
+                part.Transparency = trans
+            elseif part:IsA("Decal") then
+                if not originalTransparency[part] then
+                    originalTransparency[part] = part.Transparency
+                end
+                part.Transparency = trans
+            end
+        end
+    end
+
+    toggleButton.MouseButton1Click:connect(function()
+        isInvisible = not isInvisible
+        if isInvisible then
+            toggleButton.Text = "Invisible ON"
+            toggleButton.BackgroundColor3 = Color3.new(0, 1, 0)
+            setTransparency(1)
+            HumanoidRootPart.CanCollide = false
+        else
+            toggleButton.Text = "Invisible OFF"
+            toggleButton.BackgroundColor3 = Color3.new(0.7, 0.7, 0.7)
+            for part, trans in pairs(originalTransparency) do
+                part.Transparency = trans
+            end
+            HumanoidRootPart.CanCollide = true
+            originalTransparency = {}
+        end
+    end)
+
+    print("Invisible Fe zapushchen, pizdec!")
+end)
+
+local teleportButton = Instance.new("TextButton")
+teleportButton.Size = UDim2.new(0, 160, 0, 50)
+teleportButton.Position = UDim2.new(0, 180, 0, 10) -- Right, at the top
+teleportButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+teleportButton.Text = "OP TP Gui"
+teleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+teleportButton.TextSize = 18
+teleportButton.Font = Enum.Font.Gotham
+teleportButton.Parent = trollingFrame
+local teleportCorner = Instance.new("UICorner")
+teleportCorner.CornerRadius = UDim.new(0, 5)
+teleportCorner.Parent = teleportButton
+teleportButton.MouseButton1Click:connect(function()
+    -- OP TP Gui Script (embedded)
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    ScreenGui.Name = "TPGui"
+    ScreenGui.ResetOnSpawn = false
+
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Parent = ScreenGui
+    MainFrame.Size = UDim2.new(0, 200, 0, 300)
+    MainFrame.Position = UDim2.new(0, 10, 0, 10)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Active = true
+    MainFrame.Draggable = true
+    MainFrame.Visible = true
+
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Parent = MainFrame
+    TitleLabel.Size = UDim2.new(1, 0, 0, 50)
+    TitleLabel.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    TitleLabel.Text = "TP to Player"
+    TitleLabel.TextColor3 = Color3.new(1, 1, 1)
+    TitleLabel.Font = Enum.Font.SourceSans
+    TitleLabel.TextSize = 20
+
+    local PlayerList = Instance.new("ScrollingFrame")
+    PlayerList.Parent = MainFrame
+    PlayerList.Size = UDim2.new(1, 0, 1, -50)
+    PlayerList.Position = UDim2.new(0, 0, 0, 50)
+    PlayerList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    PlayerList.ScrollBarThickness = 8
+    PlayerList.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+
+    local function UpdatePlayerList()
+        PlayerList:ClearAllChildren()
+        local yPos = 0
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                local PlayerButton = Instance.new("TextButton")
+                PlayerButton.Parent = PlayerList
+                PlayerButton.Size = UDim2.new(1, -10, 0, 30)
+                PlayerButton.Position = UDim2.new(0, 5, 0, yPos)
+                PlayerButton.Text = player.Name
+                PlayerButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+                PlayerButton.TextColor3 = Color3.new(1, 1, 1)
+                PlayerButton.Font = Enum.Font.SourceSans
+                PlayerButton.TextSize = 18
+                yPos = yPos + 35
+                PlayerButton.MouseButton1Click:connect(function()
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        local targetCharacter = player.Character
+                        if targetCharacter and targetCharacter:FindFirstChild("HumanoidRootPart") then
+                            local targetHRP = targetCharacter.HumanoidRootPart
+                            local lookVector = targetHRP.CFrame.LookVector
+                            LocalPlayer.Character.HumanoidRootPart.CFrame = targetHRP.CFrame - lookVector * 2 + Vector3.new(0, 0.5, 0)
+                        end
+                    end
+                end)
+            end
+        end
+        PlayerList.CanvasSize = UDim2.new(0, 0, 0, yPos)
+    end
+
+    Players.PlayerAdded:connect(UpdatePlayerList)
+    Players.PlayerRemoving:connect(UpdatePlayerList)
+    UpdatePlayerList()
+
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Parent = ScreenGui
+    ToggleButton.Size = UDim2.new(0, 50, 0, 50)
+    ToggleButton.Position = UDim2.new(0, 44, 0, 435)
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+    ToggleButton.Text = "TP"
+    ToggleButton.TextColor3 = Color3.new(1, 1, 1)
+    ToggleButton.Font = Enum.Font.SourceSansBold
+    ToggleButton.TextSize = 18
+    ToggleButton.BorderSizePixel = 0
+    ToggleButton.Active = true
+    ToggleButton.ClipsDescendants = true
+    ToggleButton.AnchorPoint = Vector2.new(0, 0)
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(1, 0)
+    Corner.Parent = ToggleButton
+
+    ToggleButton.MouseButton1Click:connect(function()
+        if MainFrame then
+            MainFrame.Visible = not MainFrame.Visible
+        else
+            print("Error: MainFrame is nil in OP TP Gui!")
+        end
+    end)
+end)
+
+local yeetButton = Instance.new("TextButton")
+yeetButton.Size = UDim2.new(0, 160, 0, 50)
+yeetButton.Position = UDim2.new(0, 10, 0, 70) -- Left, below Invisible Fe, above Universal FE Ball Roll
+yeetButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+yeetButton.Text = "Yeet Gui"
+yeetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+yeetButton.TextSize = 18
+yeetButton.Font = Enum.Font.Gotham
+yeetButton.Parent = trollingFrame
+local yeetCorner = Instance.new("UICorner")
+yeetCorner.CornerRadius = UDim.new(0, 5)
+yeetCorner.Parent = yeetButton
+yeetButton.MouseButton1Click:connect(function()
+    -- Yeet Gui Script (embedded)
+    game:GetService("StarterGui"):SetCore("SendNotification", { 
+        Title = "Archived by toriko ;v";
+        Text = "All hail Toriko the certified ball sucker";
+        Duration = 90;
+    })
+
+    local lp = game:FindService("Players").LocalPlayer
+
+    local function gplr(String)
+        local Found = {}
+        local strl = String:lower()
+        if strl == "all" then
+            for i,v in pairs(game:FindService("Players"):GetPlayers()) do
+                table.insert(Found,v)
+            end
+        elseif strl == "others" then
+            for i,v in pairs(game:FindService("Players"):GetPlayers()) do
+                if v.Name ~= lp.Name then
+                    table.insert(Found,v)
+                end
+            end 
+        elseif strl == "me" then
+            for i,v in pairs(game:FindService("Players"):GetPlayers()) do
+                if v.Name == lp.Name then
+                    table.insert(Found,v)
+                end
+            end 
+        else
+            for i,v in pairs(game:FindService("Players"):GetPlayers() ) do
+                if v.Name:lower():sub(1, #String) == String:lower() then
+                    table.insert(Found,v)
+                end
+            end 
+        end
+        return Found 
+    end
+
+    local function notif(str,dur)
+        game:FindService("StarterGui"):SetCore("SendNotification", {
+            Title = "Figger Hub",
+            Text = str,
+            Icon = "rbxassetid://2005276185",
+            Duration = dur or 3
+        })
+    end
+
+    local h = Instance.new("ScreenGui")
+    local Main = Instance.new("ImageLabel")
+    local Top = Instance.new("Frame")
+    local Title = Instance.new("TextLabel")
+    local TextBox = Instance.new("TextBox")
+    local TextButton = Instance.new("TextButton")
+
+    h.Name = "YeetGui"
+    h.Parent = game:GetService("CoreGui")
+    h.ResetOnSpawn = false
+
+    Main.Name = "Main"
+    Main.Parent = h
+    Main.Active = true
+    Main.Draggable = true
+    Main.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Main.BorderSizePixel = 0
+    Main.Position = UDim2.new(0.174545452, 0, 0.459574461, 0)
+    Main.Size = UDim2.new(0, 454, 0, 218)
+    Main.Image = "rbxassetid://2005276185"
+
+    Top.Name = "Top"
+    Top.Parent = Main
+    Top.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    Top.BorderSizePixel = 0
+    Top.Size = UDim2.new(0, 454, 0, 44)
+
+    Title.Name = "Title"
+    Title.Parent = Top
+    Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    Title.BorderSizePixel = 0
+    Title.Position = UDim2.new(0, 0, 0.295454562, 0)
+    Title.Size = UDim2.new(0, 454, 0, 30)
+    Title.Font = Enum.Font.Gotham
+    Title.Text = "FE Yeet Gui (trollface edition)"
+    Title.TextColor3 = Color3.fromRGB(255, 0, 0)
+    Title.TextScaled = true
+    Title.TextSize = 14.000
+    Title.TextWrapped = true
+
+    TextBox.Parent = Main
+    TextBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    TextBox.BorderSizePixel = 0
+    TextBox.Position = UDim2.new(0.0704845786, 0, 0.270642221, 0)
+    TextBox.Size = UDim2.new(0, 388, 0, 62)
+    TextBox.Font = Enum.Font.Gotham
+    TextBox.PlaceholderText = "Who do I yeet? (can be shortened)"
+    TextBox.Text = ""
+    TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TextBox.TextScaled = true
+    TextBox.TextSize = 14.000
+    TextBox.TextWrapped = true
+
+    TextButton.Parent = Main
+    TextButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+    TextButton.BorderSizePixel = 0
+    TextButton.Position = UDim2.new(0.10352423, 0, 0.596330225, 0)
+    TextButton.Size = UDim2.new(0, 359, 0, 50)
+    TextButton.Font = Enum.Font.Gotham
+    TextButton.Text = "Yeet em'!"
+    TextButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TextButton.TextScaled = true
+    TextButton.TextSize = 14.000
+    TextButton.TextWrapped = true
+
+    TextButton.MouseButton1Click:connect(function()
+        local Target = gplr(TextBox.Text)
+        if Target[1] then
+            Target = Target[1]
+            
+            local Thrust = Instance.new('BodyThrust', lp.Character.HumanoidRootPart)
+            Thrust.Force = Vector3.new(9999, 9999, 9999)
+            Thrust.Name = "YeetForce"
+            repeat
+                lp.Character.HumanoidRootPart.CFrame = Target.Character.HumanoidRootPart.CFrame
+                Thrust.Location = Target.Character.HumanoidRootPart.Position
+                game:FindService("RunService").Heartbeat:wait()
+            until not Target.Character:FindFirstChild("Head")
+        else
+            notif("Invalid player")
+        end
+    end)
+
+    notif("Yeet Gui Loaded! Adapted for Figger Hub", 5)
+end)
+
+local spamChatButton = Instance.new("TextButton")
+spamChatButton.Size = UDim2.new(0, 160, 0, 50)
+spamChatButton.Position = UDim2.new(0, 180, 0, 70) -- Right, at the level of Yeet Gui (4th button)
+spamChatButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+spamChatButton.Text = "Spam Chat"
+spamChatButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+spamChatButton.TextSize = 18
+spamChatButton.Font = Enum.Font.Gotham
+spamChatButton.Parent = trollingFrame
+local spamChatCorner = Instance.new("UICorner")
+spamChatCorner.CornerRadius = UDim.new(0, 5)
+spamChatCorner.Parent = spamChatButton
+spamChatButton.MouseButton1Click:connect(function()
+    -- Spam Chat Script (provided by user, unchanged)
+    --[[
+        WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+    ]]
+    local TextChatService = game:GetService("TextChatService")
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+
+    -- Function to create GUI
+    local function createGui(player)
+        local ScreenGui = Instance.new("ScreenGui")
+        local Frame = Instance.new("Frame")
+        local MessageBox = Instance.new("TextBox")
+        local CountBox = Instance.new("TextBox")
+        local SendButton = Instance.new("TextButton")
+        local ToggleButton = Instance.new("TextButton")
+        local CloseButton = Instance.new("TextButton")
+        local SettingsButton = Instance.new("TextButton")
+        local SettingsFrame = Instance.new("Frame")
+        local LanguageButton = Instance.new("TextButton")
+        local CensorshipToggle = Instance.new("TextButton")
+        
+        ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+        -- Frame setup
+        Frame.Size = UDim2.new(0, 300, 0, 250)
+        Frame.Position = UDim2.new(0.5, -150, 0.5, -125)
+        Frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+        Frame.BorderSizePixel = 0
+        Frame.Active = true
+        Frame.Draggable = true
+        Frame.Parent = ScreenGui
+
+        -- MessageBox setup
+        MessageBox.Size = UDim2.new(0, 280, 0, 50)
+        MessageBox.Position = UDim2.new(0, 10, 0, 10)
+        MessageBox.PlaceholderText = "Enter message"
+        MessageBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        MessageBox.TextColor3 = Color3.fromRGB(0, 0, 0)
+        MessageBox.BorderSizePixel = 0
+        MessageBox.Parent = Frame
+
+        -- CountBox setup
+        CountBox.Size = UDim2.new(0, 280, 0, 50)
+        CountBox.Position = UDim2.new(0, 10, 0, 70)
+        CountBox.PlaceholderText = "Enter count"
+        CountBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        CountBox.TextColor3 = Color3.fromRGB(0, 0, 0)
+        CountBox.BorderSizePixel = 0
+        CountBox.Parent = Frame
+
+        -- SendButton setup
+        SendButton.Size = UDim2.new(0, 280, 0, 50)
+        SendButton.Position = UDim2.new(0, 10, 0, 130)
+        SendButton.Text = "Send"
+        SendButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        SendButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        SendButton.BorderSizePixel = 0
+        SendButton.Parent = Frame
+
+        -- ToggleButton setup
+        ToggleButton.Size = UDim2.new(0, 100, 0, 50)
+        ToggleButton.Position = UDim2.new(0, 10, 0, 10)
+        ToggleButton.Text = "Collapse/Expand"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        ToggleButton.BorderSizePixel = 0
+        ToggleButton.Parent = ScreenGui
+
+        -- CloseButton setup
+        CloseButton.Size = UDim2.new(0, 50, 0, 50)
+        CloseButton.Position = UDim2.new(1, -60, 0, 10)
+        CloseButton.Text = "X"
+        CloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        CloseButton.BorderSizePixel = 0
+        CloseButton.Parent = Frame
+
+        -- SettingsButton setup
+        SettingsButton.Size = UDim2.new(0, 280, 0, 50)
+        SettingsButton.Position = UDim2.new(0, 10, 0, 190)
+        SettingsButton.Text = "Settings"
+        SettingsButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        SettingsButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        SettingsButton.BorderSizePixel = 0
+        SettingsButton.Parent = Frame
+
+        -- SettingsFrame setup
+        SettingsFrame.Size = UDim2.new(0, 300, 0, 150)
+        SettingsFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
+        SettingsFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        SettingsFrame.Visible = false
+        SettingsFrame.Parent = ScreenGui
+
+        -- LanguageButton setup
+        LanguageButton.Size = UDim2.new(0, 280, 0, 50)
+        LanguageButton.Position = UDim2.new(0, 10, 0, 10)
+        LanguageButton.Text = "Change Language"
+        LanguageButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        LanguageButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        LanguageButton.BorderSizePixel = 0
+        LanguageButton.Parent = SettingsFrame
+
+        -- CensorshipToggle setup
+        CensorshipToggle.Size = UDim2.new(0, 280, 0, 50)
+        CensorshipToggle.Position = UDim2.new(0, 10, 0, 70)
+        CensorshipToggle.Text = "Censorship Enabled"
+        CensorshipToggle.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+        CensorshipToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+        CensorshipToggle.BorderSizePixel = 0
+        CensorshipToggle.Parent = SettingsFrame
+
+        -- Flag to track GUI state
+        local guiClosed = false
+        local censorshipEnabled = true -- Censorship enabled by default
+        local currentLanguage = "ru" -- Default to Russian
+
+        -- Function to send messages
+        local function sendMessages()
+            local message = MessageBox.Text .. (censorshipEnabled and "" or " le le le le")
+            local count = tonumber(CountBox.Text)
+
+            if message ~= "" and count then
+                for i = 1, count do
+                    local chatChannel = TextChatService:WaitForChild("TextChannels"):WaitForChild("RBXGeneral")
+                    chatChannel:SendAsync(message)
+                    wait(1) -- 1-second delay between messages
+                end
+            else
+                warn("Please enter a valid message and count.")
+            end
+        end
+
+        SendButton.MouseButton1Click:Connect(sendMessages)
+
+        -- Function to collapse/expand GUI
+        local isFrameVisible = true
+        ToggleButton.MouseButton1Click:Connect(function()
+            isFrameVisible = not isFrameVisible
+            Frame.Visible = isFrameVisible
+            ToggleButton.Text = isFrameVisible and "Collapse" or "Expand"
+        end)
+
+        -- Function to open settings
+        SettingsButton.MouseButton1Click:Connect(function()
+            SettingsFrame.Visible = true
+        end)
+
+        -- Function to close GUI
+        CloseButton.MouseButton1Click:Connect(function()
+            guiClosed = true
+            ScreenGui:Destroy()
+        end)
+
+        -- Add close button for settings
+        local SettingsCloseButton = Instance.new("TextButton")
+        SettingsCloseButton.Size = UDim2.new(0, 50, 0, 50)
+        SettingsCloseButton.Position = UDim2.new(1, -60, 0, 10)
+        SettingsCloseButton.Text = "X"
+        SettingsCloseButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        SettingsCloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        SettingsCloseButton.BorderSizePixel = 0
+        SettingsCloseButton.Parent = SettingsFrame
+        SettingsCloseButton.MouseButton1Click:Connect(function()
+            SettingsFrame.Visible = false
+        end)
+
+        -- Function to toggle censorship
+        CensorshipToggle.MouseButton1Click:Connect(function()
+            censorshipEnabled = not censorshipEnabled
+            CensorshipToggle.Text = censorshipEnabled and "Censorship Enabled" or "Censorship Disabled"
+        end)
+
+        -- Function to change language
+        LanguageButton.MouseButton1Click:Connect(function()
+            currentLanguage = (currentLanguage == "ru") and "en" or "ru"
+            MessageBox.PlaceholderText = (currentLanguage == "ru") and "Enter message" or "Enter message"
+            CountBox.PlaceholderText = (currentLanguage == "ru") and "Enter count" or "Enter count"
+            SendButton.Text = (currentLanguage == "ru") and "Send" or "Send"
+            ToggleButton.Text = (currentLanguage == "ru") and "Collapse/Expand" or "Collapse/Expand"
+            SettingsButton.Text = (currentLanguage == "ru") and "Settings" or "Settings"
+            LanguageButton.Text = (currentLanguage == "ru") and "Change Language" or "Change Language"
+            CensorshipToggle.Text = censorshipEnabled and 
+                ((currentLanguage == "ru") and "Censorship Enabled" or "Censorship Enabled") or 
+                ((currentLanguage == "ru") and "Censorship Disabled" or "Censorship Disabled")
+        end)
+
+        print("Created GUI for player: " .. player.Name)
+    end
+
+    -- Create GUI for each player
+    Players.PlayerAdded:Connect(function(player)
+        createGui(player)
+    end)
+
+    -- Create GUI for existing players
+    for _, player in ipairs(Players:GetPlayers()) do
+        createGui(player)
+    end
+
+    -- Ensure script runs continuously
+    RunService.RenderStepped:Connect(function()
+        -- Add any code that needs to run continuously here
+    end)
+
+    print("Script loaded and running.")
+    print("Spam Chat zapushchen, pizdec!")
+end)
+
+local ballRollButton = Instance.new("TextButton")
+ballRollButton.Size = UDim2.new(0, 160, 0, 50)
+ballRollButton.Position = UDim2.new(0, 10, 0, 130) -- Left, below Yeet Gui
+ballRollButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+ballRollButton.Text = "Universal FE Ball Roll"
+ballRollButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ballRollButton.TextSize = 18
+ballRollButton.Font = Enum.Font.Gotham
+ballRollButton.Parent = trollingFrame
+local ballRollCorner = Instance.new("UICorner")
+ballRollCorner.CornerRadius = UDim.new(0, 5)
+ballRollCorner.Parent = ballRollButton
+ballRollButton.MouseButton1Click:connect(function()
+    -- Universal FE Ball Roll Script
+    local UserInputService = game:GetService("UserInputService")
+    local RunService = game:GetService("RunService")
+    local Camera = workspace.CurrentCamera
+
+    local SPEED_MULTIPLIER = 30
+    local JUMP_POWER = 60
+    local JUMP_GAP = 0.3
+
+    local character = game.Players.LocalPlayer.Character
+
+    for i,v in ipairs(character:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.CanCollide = false
+        end
+    end
+
+    local ball = character.HumanoidRootPart
+    ball.Shape = Enum.PartType.Ball
+    ball.Size = Vector3.new(5,5,5)
+    local humanoid = character:WaitForChild("Humanoid")
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = {character}
+
+    local tc = RunService.RenderStepped:Connect(function(delta)
+        ball.CanCollide = true
+        humanoid.PlatformStand = true
+        if UserInputService:GetFocusedTextBox() then return end
+        if UserInputService:IsKeyDown("W") then
+            ball.RotVelocity -= Camera.CFrame.RightVector * delta * SPEED_MULTIPLIER
+        end
+        if UserInputService:IsKeyDown("A") then
+            ball.RotVelocity -= Camera.CFrame.LookVector * delta * SPEED_MULTIPLIER
+        end
+        if UserInputService:IsKeyDown("S") then
+            ball.RotVelocity += Camera.CFrame.RightVector * delta * SPEED_MULTIPLIER
+        end
+        if UserInputService:IsKeyDown("D") then
+            ball.RotVelocity += Camera.CFrame.LookVector * delta * SPEED_MULTIPLIER
+        end
+    end)
+
+    UserInputService.JumpRequest:Connect(function()
+        local result = workspace:Raycast(
+            ball.Position,
+            Vector3.new(
+                0,
+                -((ball.Size.Y/2)+JUMP_GAP),
+                0
+            ),
+            params
+        )
+        if result then
+            ball.Velocity = ball.Velocity + Vector3.new(0,JUMP_POWER,0)
+        end
+    end)
+
+    Camera.CameraSubject = ball
+    humanoid.Died:Connect(function() tc:Disconnect() end)
+    print("Universal FE Ball Roll is started")
+end)
+
+local fakeLagButton = Instance.new("TextButton")
+fakeLagButton.Size = UDim2.new(0, 160, 0, 50)
+fakeLagButton.Position = UDim2.new(0, 180, 0, 130) -- Right, at the level of Universal FE Ball Roll (6th button)
+fakeLagButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+fakeLagButton.Text = "FE Fake Lag"
+fakeLagButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+fakeLagButton.TextSize = 18
+fakeLagButton.Font = Enum.Font.Gotham
+fakeLagButton.Parent = trollingFrame
+local fakeLagCorner = Instance.new("UICorner")
+fakeLagCorner.CornerRadius = UDim.new(0, 5)
+fakeLagCorner.Parent = fakeLagButton
+fakeLagButton.MouseButton1Click:connect(function()
+    -- FE Fake Lag Script (provided by user, unchanged)
+    local DropGUI = Instance.new("ScreenGui")
+    local main = Instance.new("Frame")
+    local DropTool = Instance.new("TextButton")
+    local Equip = Instance.new("TextButton")
+    local Version = Instance.new("TextButton")
+    local Cred = Instance.new("TextButton")
+
+    DropGUI.Name = "Drop GUI"
+    DropGUI.Parent = game.CoreGui
+    DropGUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    main.Name = "main"
+    main.Parent = DropGUI
+    main.BackgroundColor3 = Color3.fromRGB(0,1,0)
+    main.Position = UDim2.new(0.0809101239, 0, 0.203790441, 0)
+    main.Size = UDim2.new(0.2,0,0.3)
+    main.Active = true
+    main.Draggable = true
+
+    DropTool.Name = "Drop Tool"
+    DropTool.Parent = main
+    DropTool.BackgroundColor3 = Color3.fromRGB(300,300,300)
+    DropTool.Position = UDim2.new(0.07, 0, 0.12, 0)
+    DropTool.Size = UDim2.new(0, 55, 0, 50)
+    DropTool.Font = Enum.Font.SourceSans
+    DropTool.Text = "Enable Fake Lag"
+    DropTool.TextColor3 = Color3.fromRGB(0, 0, 0)
+    DropTool.TextScaled = true
+    DropTool.TextSize = 14.000
+    DropTool.TextWrapped = true
+    DropTool.MouseButton1Down:Connect(function()
+        getgenv().autokill = true
+         
+        if getgenv().autokill then
+            task.spawn(function()
+                while getgenv().autokill do
+                    for I, V in pairs(game.Players:GetChildren()) do
+                        local LocalPlayer = game:GetService("Players").LocalPlayer
+                        local Character = LocalPlayer.Character
+                        local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+
+                        HumanoidRootPart.Anchored = true
+                        wait(0.2)
+                        local LocalPlayer = game:GetService("Players").LocalPlayer
+                        local Character = LocalPlayer.Character
+                        local HumanoidRootPart = Character:FindFirstChild("HumanoidRootPart")
+
+                        HumanoidRootPart.Anchored = false
+                        wait()
+                    end
+                end
+            end)
+        end
+    end)
+
+    Equip.Name = "Equip"
+    Equip.Parent = main
+    Equip.BackgroundColor3 = Color3.fromRGB(300,300,300)
+    Equip.Position = UDim2.new(0.55251956, 0, 0.119906083, 0)
+    Equip.Size = UDim2.new(0, 55, 0, 50)
+    Equip.Font = Enum.Font.SourceSans
+    Equip.Text = "Disable Fake Lag"
+    Equip.TextColor3 = Color3.fromRGB(0, 0, 0)
+    Equip.TextScaled = true
+    Equip.TextSize = 14.000
+    Equip.TextWrapped = true
+    Equip.MouseButton1Down:Connect(function()
+        getgenv().autokill = false
+        getgenv().autokill = false
+        getgenv().autokill = false
+        getgenv().autokill = false
+        getgenv().autokill = false
+    end)
+
+    Version.Name = "Version"
+    Version.Parent = main
+    Version.BackgroundColor3 = Color3.fromRGB(300,300,300)
+    Version.Position = UDim2.new(0, 0, 0.999885917, 0)
+    Version.Size = UDim2.new(1,0.2,0.3)
+    Version.Font = Enum.Font.SourceSans
+    Version.Text = ""
+    Version.TextColor3 = Color3.fromRGB(0, 0, 0)
+    Version.TextScaled = true
+    Version.TextSize = 14.000
+    Version.TextWrapped = true
+
+    Cred.Name = "Cred"
+    Cred.Parent = main
+    Cred.BackgroundColor3 = Color3.fromRGB(300,300,300)
+    Cred.Position = UDim2.new(0, 0, -0.266169071, 0)
+    Cred.Size = UDim2.new(1,0.2,0.3)
+    Cred.Font = Enum.Font.SourceSans
+    Cred.Text = "Script Creator By GhostPlayer"
+    Cred.TextColor3 = Color3.fromRGB(0, 0, 0)
+    Cred.TextSize = 14.000
+    Cred.TextWrapped = true
+
+    print("FE Fake Lag zapushchen, pizdec!")
+end)
+
+-- Create tabs
 createTab("EBAT CAXARKOV", ebatFrame)
 createTab("Aim Figger", aimFrame)
+createTab("Trolling", trollingFrame)
 
--- Показ первой вкладки по умолчанию
+-- Show first tab by default
 ebatFrame.Visible = true
+activeTabName = "EBAT CAXARKOV"
 tabFrame:GetChildren()[1].BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 
-print("Figger Hub запущен, пиздец! Троллим всех, мать их!")
+print("Figger Hub [BETA] by Muher")
